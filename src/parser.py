@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import List
 from groq import Groq
+from src.config import LLM_MODEL
 from src.schemas import FinancialContext
 
 
@@ -32,7 +33,7 @@ def parse_request_context(prompt: str, media_paths: List[Path]) -> FinancialCont
     )
 
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  # Standard active Groq model
+        model=LLM_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"User Request Context:\n{prompt}"}
