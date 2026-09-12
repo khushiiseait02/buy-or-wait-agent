@@ -1,49 +1,47 @@
 import os
-import base64
+import json
 from pathlib import Path
 from typing import List
-from openai import OpenAI
+from groq import Groq
 from src.schemas import FinancialContext
-from src.config import OPENAI_API_KEY, LLM_MODEL
 
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
-
-def encode_image(image_path: Path) -> str:
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
 
 def parse_request_context(prompt: str, media_paths: List[Path]) -> FinancialContext:
-    if not client:
-        raise ValueError("OPENAI_API_KEY environment variable is missing.")
+    """Parses text prompts using Groq."""
+    api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "GROQ_API_KEY is missing. Set it in PowerShell or add it to a .env file."
+        )
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a precise financial parser. Extract all numerical amounts, "
-                "recurring commitments, income dates, pending bills, minimum balance floors, "
-                "and requested expense details from the context and images."
-            )
-        }
-    ]
+    client = Groq(api_key=api_key)
 
-    content = [{"type": "text", "text": f"User Request Context:\n{prompt}"}]
+    system_prompt = (
+        "You are a precise financial parser. Extract all numerical amounts, "
+        "recurring commitments, income dates, pending bills, minimum balance floors, "
+        "and requested expense details from the context.\n"
+        "You MUST output raw valid JSON matching this schema:\n"
+        "{\n"
+        '  "current_balance": float,\n'
+        '  "min_required_balance": float,\n'
+        '  "requested_item_price": float,\n'
+        '  "confirmed_incomes": [{"date": "YYYY-MM-DD", "amount": float}],\n'
+        '  "recurring_expenses": [{"date": "YYYY-MM-DD", "amount": float, "category": "str", "essential": bool}],\n'
+        '  "pending_payments": [{"date": "YYYY-MM-DD", "amount": float, "category": "str", "essential": bool}]\n'
+        "}"
+    )
 
-    for path in media_paths:
-        if path.exists() and path.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]:
-            base64_img = encode_image(path)
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}
-            })
-
-    messages.append({"role": "user", "content": content})
-
-    response = client.beta.chat.completions.parse(
-        model=LLM_MODEL,
-        messages=messages,
-        response_format=FinancialContext,
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",  # Standard active Groq model
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"User Request Context:\n{prompt}"}
+        ],
+        response_format={"type": "json_object"},
         temperature=0.0
     )
 
-    return response.parsed
+    raw_json = response.choices[0].message.content
+    parsed_dict = json.loads(raw_json)
+
+    return FinancialContext(**parsed_dict)

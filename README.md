@@ -14,9 +14,14 @@ A multimodal, deterministic-guided AI financial decision agent built for the Hac
    ```bash
    pip install -r requirements.txt
    ```
-2. **Set OpenAI API Key:**
+2. **Set the Groq API Key:**
+   PowerShell:
+   ```powershell
+   $env:GROQ_API_KEY = "your-api-key"
+   ```
+   Or create a `.env` file in the project root:
    ```bash
-   export OPENAI_API_KEY="your-api-key"
+   GROQ_API_KEY=your-api-key
    ```
 3. **Run Pipeline:**
    ```bash
