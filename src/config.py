@@ -11,5 +11,5 @@ OUTPUT_CSV = BASE_DIR / "output.csv"
 LOG_FILE = BASE_DIR / "log.txt"
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-LLM_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+LLM_MODEL = os.getenv("GROQ_MODEL", "")
 FORECAST_DAYS = 60

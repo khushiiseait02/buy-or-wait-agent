@@ -7,6 +7,27 @@ from src.config import LLM_MODEL
 from src.schemas import FinancialContext
 
 
+def _resolve_model(client: Groq) -> str:
+    if LLM_MODEL:
+        return LLM_MODEL
+
+    preferred_models = (
+        "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile",
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "qwen/qwen3-32b",
+    )
+    available_models = {model.id for model in client.models.list().data}
+    for model_id in preferred_models:
+        if model_id in available_models:
+            return model_id
+
+    raise RuntimeError(
+        "No supported Groq chat model is available. Set GROQ_MODEL to a model "
+        "listed by your Groq account."
+    )
+
+
 def parse_request_context(prompt: str, media_paths: List[Path]) -> FinancialContext:
     """Parses text prompts using Groq."""
     api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
@@ -16,6 +37,7 @@ def parse_request_context(prompt: str, media_paths: List[Path]) -> FinancialCont
         )
 
     client = Groq(api_key=api_key)
+    model = _resolve_model(client)
 
     system_prompt = (
         "You are a precise financial parser. Extract all numerical amounts, "
@@ -33,7 +55,7 @@ def parse_request_context(prompt: str, media_paths: List[Path]) -> FinancialCont
     )
 
     response = client.chat.completions.create(
-        model=LLM_MODEL,
+        model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"User Request Context:\n{prompt}"}
