@@ -23,6 +23,7 @@ A multimodal, deterministic-guided AI financial decision agent built for the Hac
    ```bash
    GROQ_API_KEY=your-api-key
    ```
+   The default model is `meta-llama/llama-4-scout-17b-16e-instruct`. You can override it with `GROQ_MODEL` if your account exposes a different Groq model.
 3. **Run Pipeline:**
    ```bash
    python main.py
